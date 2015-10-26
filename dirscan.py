@@ -10,6 +10,9 @@ import time
 import Queue
 import re
 import difflib
+import random
+import string
+import urlparse
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -20,87 +23,146 @@ header = {
 "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:35.0) Gecko/20100101 Firefox/35.0"
 }
 
+Banner = r'''
+
+ mmmm     "            mmmm
+ #   "m mmm     m mm  #"   "  mmm    mmm   m mm
+ #    #   #     #"  " "#mmm  #"  "  "   #  #"  #
+ #    #   #     #         "# #      m"""#  #   #
+ #mmm"  mm#mm   #     "mmm#" "#mm"  "mm"#  #   #
+
+
+
+   Author: RickGray@0xFA-Team          |
+           Croxy@0xFA-Team             |
+   Create: 2015-10-25                  |
+   Update: 2015-10-25                  |
+  Version: 0.2-alpha                   |
+_______________________________________|
+'''
+
 
 class DirScan:
     def __init__(self, target, threads_num, ext):
+        global errtext
         self.target = target.strip()
         self.threads_num = threads_num
         self.ext = ext
         self.lock = threading.Lock()
         #outfile
         self.__load_dir_dict()
-        self._getbak()
-        self._errorpage()
-        self.errorpage = r'信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404'
+        errtext = self.build_not_found_template(self.target)
+        self.errorpage = r'信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|'
         self.regex = re.compile(self.errorpage)
 
-    def _errorpage(self):
-        global errtext
-        target = self.target
-        url = target+'/16fc8a432f7f46853240e38aff9fd8fd.html'
-        try:
-            r =requests.get(url, headers=header, timeout=5)
-            errtext = r.text
-        except Exception,e:
-            print e
-
+    # def errtext(self):
+    #     target = self.target
+    #     choices = string.letters + string.digits
+    #     path = ''.join([random.choice(choices) for _ in range(int(16))])
+    #     url = target + '/' + path
+    #     print url
+    #     try:
+    #         r =requests.get(url, headers=header, timeout=5)
+    #         errtext = r.text
+    #     except Exception,e:
+    #         print e
+    #     return errtext
+    #
+    #
 
     def __load_dir_dict(self):
         self.queue = Queue.Queue()
         ext = self.ext
         target = self.target
-        with open('mulu.txt') as f:
+        hostuser = target.split('.')
+        hostuser = hostuser[len(hostuser)-2]
+        bak =  ['/'+hostuser+'.rar','/'+hostuser+'.zip','/'+hostuser+hostuser+'.rar','/'+hostuser+'.rar','/'+hostuser+'.tar.gz','/'+hostuser+'.tar','/'+hostuser+'123.zip','/'+hostuser+'123.tar.gz','/'+hostuser+hostuser+'.zip','/'+hostuser+hostuser+'.tar.gz','/'+hostuser+hostuser+'.tar','/'+hostuser+'.bak']
+        with open('dir.txt') as f:
             for line in f:
                 mulu = line.replace('$ext$',ext).strip()
                 if mulu:
                     self.queue.put(mulu)
 
-    def _getbak(self):
-        self.QUEUE = Queue.Queue()
-        target = self.target
-        hostuser = target.split('.')
-        hostuser = hostuser[len(hostuser)-2]
-        bak =  ['/'+hostuser+'.rar','/'+hostuser+'.zip','/'+hostuser+hostuser+'.rar','/'+hostuser+'.rar','/'+hostuser+'.tar.gz','/'+hostuser+'.tar','/'+hostuser+'123.zip','/'+hostuser+'123.tar.gz','/'+hostuser+hostuser+'.zip','/'+hostuser+hostuser+'.tar.gz','/'+hostuser+hostuser+'.tar','/'+hostuser+'.bak']
-        for j in range(len(bak)):
-            BAK = bak[j]
-            self.QUEUE.put(BAK)
-        with open('bak.txt') as f:
-            for line in f:
-                baks = line.strip()
-                if baks:
-                    self.QUEUE.put(baks)
+    def get_random_string(self,length=16):
+        """ 随机生成指定长度由大小写字母和数字构成的字符串 """
+        choices = string.letters + string.digits
+        return ''.join([random.choice(choices) for _ in range(int(length))])
 
-    def _runbak(self):
-        try:
-            while self.QUEUE.qsize() > 0:
-                subs = self.QUEUE.get(timeout=1.0)
-                domains = self.target + subs
-                #print domains
-                try:
-                    q = requests.head(domains, headers = header, allow_redirects=False, timeout=5)
-                    if q.status_code == 200:
-                        print "[*] %s =============> 200" % domains
-                except Exception,e:
-                    pass
-        except Exception,e:
-            print e
+    def build_random_path(self):
+        """ 随机生成由大小写字母和数字构成的路径 """
+        random_string = self.get_random_string(random.randint(5, 10))
+        ext_choices = ['.html', '.php', '.asp', '.htm', '.jpeg', '.png', '.zip']
+        random_path = random_string
+        while True:
+            # 随机构建子路径，当 random.choice([True, False]) 为 False 时退出循环
+            if not random.choice([True, False]):
+                random_path += random.choice(ext_choices)
+                break
+            else:
+                random_string = self.get_random_string(random.randint(5, 10))
+                random_path += '/' + random_string
+
+        return random_path
+
+    def build_not_found_template(self,url):
+        """ 获取扫描URL基本路径，构建基于当前目录的404页面模板 """
+        base_url = urlparse.urljoin(url, './')
+
+        pre_responses = []
+        for _ in range(6):
+            # 随机生成路径，相继访问得到页面内容，对成功返回的结果进行比较得到404页面模板
+            random_path = self.build_random_path()
+            random_url = urlparse.urljoin(base_url, random_path)
+            try:
+                response = requests.get(random_url)
+            except requests.exceptions.RequestException, ex:
+                err = 'failed to access %s, ' % random_url
+                err += str(ex)
+                print err
+                continue
+            pre_responses.append(response)
+
+        if len(pre_responses) < 2:
+            # 由于随机获取到的页面内容数量太少不能进行 404页面模板 提取操作
+            return None
+
+        ratios = []
+        pre_content = pre_responses[0].content
+        for response in pre_responses[1:]:
+            cur_content = response.content
+            ratio = difflib.SequenceMatcher(None, pre_content, cur_content).quick_ratio()
+            ratios.append(ratio)
+            pre_content = cur_content
+
+        average = float(sum(ratios)) / len(ratios)
+        if average > 0.9:
+            #print 'succeed to build %s 404 page template' % url
+
+            return random.choice(pre_responses).content
+        else:
+            return None
 
     def _scan(self):
-        #print "[*]%s Scaning...." % self.target
-        try:
-            while self.queue.qsize() > 0:
-                sub = self.queue.get(timeout=1.0)
+        #print errtext
+        while True:
+            if self.queue.empty():
+                break
+            try:
+                sub = self.queue.get_nowait()
         #try:
                 #print sub
                 domain = self.target + sub
-                print domain
-                r = requests.get(domain, headers = header, timeout=5)
+                #print domain
+                r = requests.get(domain, headers = header, timeout=5, stream=True)
                 code = r.status_code
+                if ('gz' or 'zip' or 'rar' or 'tar' or '7z' or 'bz2') in domain and code == 200:
+                    print "[*] %s =======> 200\n" %domain,
                 text = r.text
                 #print errtext
                 ratios = dict((_, difflib.SequenceMatcher(None, text, errtext).quick_ratio()) for _ in (True, False))
                 is404 = all(ratios.values()) and ratios[True] > 0.9
                 #print is404
+                #print code
                 if code == 200 and not self.regex.findall(text) and not is404:
                     try:
                         title = re.findall(r"<title>(.+?)</title>",text)
@@ -108,18 +170,23 @@ class DirScan:
                     except Exception,e:
                         print "[*] %s =======> 200\n" %domain,
 
-        except Exception,e:
-            pass
+            except Exception,e:
+                pass
 
 
     def run(self):
         self.start_time = time.time()
         for i in range(self.threads_num):
-            q = threading.Thread(target=self._runbak, name=str(i))
-            q.start()
             t = threading.Thread(target=self._scan, name=str(i))
             t.start()
 
+def patch_url(url):
+    """ 修复不标准URL """
+    res = urlparse.urlparse(url)
+    if not res.scheme:
+        url = 'http://' + url
+
+    return url
 
 if __name__ == '__main__':
     parser = optparse.OptionParser('usage: %prog [options] http://www.c-chicken.cc')
@@ -133,8 +200,9 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     if len(args) < 1:
+        print Banner
         parser.print_help()
         sys.exit(0)
-
-    d = DirScan(target=args[0],threads_num=options.threads_num,ext=options.ext)
+    url = patch_url(args[0])
+    d = DirScan(target=url,threads_num=options.threads_num,ext=options.ext)
     d.run()
