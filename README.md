@@ -2,7 +2,10 @@
 
 ##需求
    python 2.x
+   
    requests
+   
+   ProgressBar
 
 一些智能错误关键字判断 和网站域名备份文件
 
@@ -50,5 +53,7 @@ Options:
 **5. 解决线程kill不掉的问题**
 
 **6. 增加pldirsca.py 在target.txt放入你的目标 进行批量扫描**
+
+**7. 感谢LGrok添加进度查看**
 
 ###感谢RickGray Ricter等人的帮助以及建议:)
