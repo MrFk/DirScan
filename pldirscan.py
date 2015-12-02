@@ -9,6 +9,7 @@ import threading
 import time
 import Queue
 import re
+from progressbar import ProgressBar
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -75,10 +76,17 @@ class DirScan:
 
     def run(self):
         self.start_time = time.time()
+        t_sequ = []
+        t_pro = threading.Thread(target=self.progress, name="progress")
+        t_pro.setDaemon(True)
+        t_pro.start()
+
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
             t.setDaemon(True)
             t.start()
+        while self.thread_count > 0:
+            time.sleep(0.01)
 
 
 if __name__ == '__main__':

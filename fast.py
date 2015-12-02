@@ -10,6 +10,7 @@ import time
 import Queue
 import re
 import urlparse
+from progressbar import ProgressBar
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -26,9 +27,9 @@ class DirScan:
         self.threads_num = threads_num
         self.ext = ext
         self.lock = threading.Lock()
-        #outfile
+        self.thread_count = self.threads_num = threads_num
         self.__load_dir_dict()
-        self.errorpage = r'出错啦|信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|'
+        self.errorpage = r'防火墙|出错啦|信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|'
         self.regex = re.compile(self.errorpage)
 
     def __load_dir_dict(self):
@@ -42,6 +43,7 @@ class DirScan:
             for line in f:
                 mulu = line.replace('$ext$',ext).strip()
                 if mulu:
+                    #print mulu
                     self.queue.put(mulu)
 
     def _scan(self):
@@ -51,27 +53,50 @@ class DirScan:
                 break
             try:
                 sub = self.queue.get_nowait()
+                self.queue.task_done()
         #try:
                 #print sub
                 domain = self.target + sub
-                #print domain
                 r = requests.head(domain, headers = header, timeout=5, stream=True)
                 code = r.status_code
                 if code == 200:
                     print "[*] %s =======> 200 \n" %domain,
                 elif code == 403:
-		    pass
+		            pass
                     #print "[*] %s =======> 403 \n" %domain,
-
             except Exception,e:
-                pass
+                print self.target + sub
+                print e
+        self.thread_count -= 1
+
+    def progress(self):
+        """show progress"""
+        dirCount = self.queue.unfinished_tasks
+        bar = ProgressBar().start()
+        while self.queue.qsize()!=0:
+            bar.update(int(((dirCount-self.queue.qsize())/float(dirCount))*100))
+            time.sleep(1)
+        bar.finish()
+        exit()
 
     def run(self):
         self.start_time = time.time()
+        t_sequ = []
+        t_pro = threading.Thread(target=self.progress, name="progress")
+        t_pro.setDaemon(True)
+        t_pro.start()
+
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
             t.setDaemon(True)
             t.start()
+        while self.thread_count > 0:
+            time.sleep(0.01)
+
+        for t in t_sequ:
+            t.join()
+
+        print "finished"
 
 def patch_url(url):
     """ 修复不标准URL """

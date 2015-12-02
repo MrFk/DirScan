@@ -13,6 +13,7 @@ import difflib
 import random
 import string
 import urlparse
+from progressbar import ProgressBar
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -34,7 +35,7 @@ Banner = r'''
 
 
    Author: RickGray@0xFA-Team          |
-           Cupport@0xFA-Team             |
+           Cupport@0xFA-Team           |
    Create: 2015-10-25                  |
    Update: 2015-10-25                  |
   Version: 0.2-alpha                   |
@@ -172,15 +173,22 @@ class DirScan:
                         print "[*] %s =======> 200\n" %domain,
                 self.lock.release()
             except Exception,e:
-                pass
+                print e
 
 
     def run(self):
         self.start_time = time.time()
+        t_sequ = []
+        t_pro = threading.Thread(target=self.progress, name="progress")
+        t_pro.setDaemon(True)
+        t_pro.start()
+
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
             t.setDaemon(True)
             t.start()
+        while self.thread_count > 0:
+            time.sleep(0.01)
 
 def patch_url(url):
     """ 修复不标准URL """
@@ -194,7 +202,7 @@ if __name__ == '__main__':
     parser = optparse.OptionParser('usage: %prog [options] http://www.c-chicken.cc')
     parser.add_option('-t', '--threads', dest='threads_num',
               default=10, type='int',
-              help='Number of threads. default = 10')
+              help='Number of threads. default = 5')
     parser.add_option('-e', '--ext', dest='ext', default='php',
                type='string', help='You want to Scan WebScript. default is php')
    # parser.add_option('-o', '--output', dest='output', default=None,
