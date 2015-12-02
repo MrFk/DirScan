@@ -49,4 +49,6 @@ Options:
 
 **5. 解决线程kill不掉的问题**
 
+**6. 增加pldirsca.py 在target.txt放入你的目标 进行批量扫描**
+
 ###感谢RickGray Ricter等人的帮助以及建议:)
