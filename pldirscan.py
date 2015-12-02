@@ -9,7 +9,6 @@ import threading
 import time
 import Queue
 import re
-import urlparse
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -20,6 +19,7 @@ header = {
 "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:35.0) Gecko/20100101 Firefox/35.0"
 }
 
+
 class DirScan:
     def __init__(self, target, threads_num, ext):
         self.target = target.strip()
@@ -28,7 +28,7 @@ class DirScan:
         self.lock = threading.Lock()
         #outfile
         self.__load_dir_dict()
-        self.errorpage = r'出错啦|信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|'
+        self.errorpage = r'无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|美容|百姓大事件|功能入口'
         self.regex = re.compile(self.errorpage)
 
     def __load_dir_dict(self):
@@ -37,34 +37,41 @@ class DirScan:
         target = self.target
         hostuser = target.split('.')
         hostuser = hostuser[len(hostuser)-2]
+        #print hostuser
         bak =  ['/'+hostuser+'.rar','/'+hostuser+'.zip','/'+hostuser+hostuser+'.rar','/'+hostuser+'.rar','/'+hostuser+'.tar.gz','/'+hostuser+'.tar','/'+hostuser+'123.zip','/'+hostuser+'123.tar.gz','/'+hostuser+hostuser+'.zip','/'+hostuser+hostuser+'.tar.gz','/'+hostuser+hostuser+'.tar','/'+hostuser+'.bak']
-        with open('dir.txt') as f:
+        for j in range(len(bak)):
+            BAK = bak[j]
+            self.queue.put(BAK)
+        with open('mulu.txt') as f:
             for line in f:
                 mulu = line.replace('$ext$',ext).strip()
                 if mulu:
+                    #print mulu
                     self.queue.put(mulu)
 
     def _scan(self):
-        #print errtext
-        while True:
-            if self.queue.empty():
-                break
-            try:
-                sub = self.queue.get_nowait()
+        #print "[*]%s Scaning...." % self.target
+        try:
+            while self.queue.qsize() > 0:
+                sub = self.queue.get(timeout=1.0)
         #try:
                 #print sub
                 domain = self.target + sub
                 #print domain
-                r = requests.head(domain, headers = header, timeout=5, stream=True)
+                r = requests.get(domain, headers = header, allow_redirects=False, timeout=5)
                 code = r.status_code
-                if code == 200:
-                    print "[*] %s =======> 200 \n" %domain,
-                elif code == 403:
-		    pass
-                    #print "[*] %s =======> 403 \n" %domain,
+                text = r.content
+                lens = len(text)
+                if code == 200 and not self.regex.findall(text) and lens != 0 :
+                 try:
+                     title = re.findall(r"<title>(.+?)</title>",text)
+                     print "[*] %s =======> 200 (Title:%s)\n" %(domain, title[0]),
+                 except Exception,e:
+                     print "[*] %s =======> 200\n" %domain,
 
-            except Exception,e:
-                pass
+        except Exception,e:
+            pass
+
 
     def run(self):
         self.start_time = time.time()
@@ -73,28 +80,24 @@ class DirScan:
             t.setDaemon(True)
             t.start()
 
-def patch_url(url):
-    """ 修复不标准URL """
-    res = urlparse.urlparse(url)
-    if not res.scheme:
-        url = 'http://' + url
-
-    return url
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser('usage: %prog [options] http://www.c-chicken.cc')
-    parser.add_option('-t', '--threads', dest='threads_num',
-              default=10, type='int',
-              help='Number of threads. default = 10')
-    parser.add_option('-e', '--ext', dest='ext', default='php',
-               type='string', help='You want to Scan WebScript. default is php')
+    #parser = optparse.OptionParser('usage: %prog [options] http://www.c-chicken.cc')
+    #parser.add_option('-t', '--threads', dest='threads_num',
+     #         default=10, type='int',
+     #         help='Number of threads. default = 10')
+   # parser.add_option('-e', '--ext', dest='ext', default='php',
+      #         type='string', help='You want to Scan WebScript. default is php')
    # parser.add_option('-o', '--output', dest='output', default=None,
    #          type='string', help='Output file name. default is {target}.txt')
 
-    (options, args) = parser.parse_args()
-    if len(args) < 1:
-        parser.print_help()
-        sys.exit(0)
-    url = patch_url(args[0])
-    d = DirScan(target=url,threads_num=options.threads_num,ext=options.ext)
-    d.run()
+   # (options, args) = parser.parse_args()
+    #if len(args) < 1:
+     #   parser.print_help()
+      #  sys.exit(0)
+    f = open('target.txt','r')
+    hosts = f.read().split()
+    for i in range(len(hosts)):
+        Dict = 'http://'+hosts[i]
+        d = DirScan(target=Dict,threads_num=10,ext='php')
+        d.run()

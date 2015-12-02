@@ -112892,3 +112892,7 @@
 /zzzz.rar
 /网站备份.rar
 /网站备份.zip
+/1.sql
+/2.sql
+/web.sql
+/www.sql

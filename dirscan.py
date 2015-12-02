@@ -34,7 +34,7 @@ Banner = r'''
 
 
    Author: RickGray@0xFA-Team          |
-           Croxy@0xFA-Team             |
+           Cupport@0xFA-Team             |
    Create: 2015-10-25                  |
    Update: 2015-10-25                  |
   Version: 0.2-alpha                   |
@@ -153,6 +153,7 @@ class DirScan:
                 #print sub
                 domain = self.target + sub
                 #print domain
+                self.lock.acquire()
                 r = requests.get(domain, headers = header, timeout=5, stream=True)
                 code = r.status_code
                 if ('gz' or 'zip' or 'rar' or 'tar' or '7z' or 'bz2') in domain and code == 200:
@@ -169,7 +170,7 @@ class DirScan:
                         print "[*] %s =======> 200 (Title:%s)\n" %(domain, title[0]),
                     except Exception,e:
                         print "[*] %s =======> 200\n" %domain,
-
+                self.lock.release()
             except Exception,e:
                 pass
 
@@ -178,6 +179,7 @@ class DirScan:
         self.start_time = time.time()
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
+            t.setDaemon(True)
             t.start()
 
 def patch_url(url):
