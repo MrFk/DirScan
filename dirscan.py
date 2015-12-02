@@ -34,7 +34,7 @@ Banner = r'''
 
 
    Author: RickGray@0xFA-Team          |
-           Cupport@0xFA-Team             |
+           Cupport@0xFA-Team           |
    Create: 2015-10-25                  |
    Update: 2015-10-25                  |
   Version: 0.2-alpha                   |
