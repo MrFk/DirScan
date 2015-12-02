@@ -175,20 +175,37 @@ class DirScan:
             except Exception,e:
                 print e
 
+    def progress(self):
+        """show progress"""
+        dirCount = self.queue.unfinished_tasks
+        bar = ProgressBar().start()
+        while self.queue.qsize()!=0:
+            bar.update(int(((dirCount-self.queue.qsize())/float(dirCount))*100))
+            time.sleep(1)
+        bar.finish()
+        exit()
 
     def run(self):
         self.start_time = time.time()
         t_sequ = []
         t_pro = threading.Thread(target=self.progress, name="progress")
+<<<<<<< HEAD
         t_pro.setDaemon(True)
+=======
+>>>>>>> bfd56f5182b2c92783521ab657a5669dbe00e51c
         t_pro.start()
 
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
-            t.setDaemon(True)
+            t_sequ.append(t)
             t.start()
         while self.thread_count > 0:
             time.sleep(0.01)
+
+        for t in t_sequ:
+            t.join()
+
+        print "finished"
 
 def patch_url(url):
     """ 修复不标准URL """
