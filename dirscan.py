@@ -189,10 +189,7 @@ class DirScan:
         self.start_time = time.time()
         t_sequ = []
         t_pro = threading.Thread(target=self.progress, name="progress")
-<<<<<<< HEAD
         t_pro.setDaemon(True)
-=======
->>>>>>> bfd56f5182b2c92783521ab657a5669dbe00e51c
         t_pro.start()
 
         for i in range(self.threads_num):
