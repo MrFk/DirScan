@@ -50,7 +50,7 @@ class DirScan:
         self.threads_num = threads_num
         self.ext = ext
         self.lock = threading.Lock()
-        #outfile
+        self.thread_count = self.threads_num = threads_num
         self.__load_dir_dict()
         errtext = self.build_not_found_template(self.target)
         self.errorpage = r'信息提示|参数错误|no exists|User home page for|可疑输入拦截|D盾|安全狗|无法加载模块|[nN]ot [fF]ound|不存在|未找到|Error|Welcome to nginx!|404|'
