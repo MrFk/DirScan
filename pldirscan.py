@@ -9,7 +9,6 @@ import threading
 import time
 import Queue
 import re
-from progressbar import ProgressBar
 
 header = {
 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -25,6 +24,7 @@ class DirScan:
     def __init__(self, target, threads_num, ext):
         self.target = target.strip()
         self.threads_num = threads_num
+        self.thread_count = threads_num
         self.ext = ext
         self.lock = threading.Lock()
         #outfile
@@ -43,7 +43,7 @@ class DirScan:
         for j in range(len(bak)):
             BAK = bak[j]
             self.queue.put(BAK)
-        with open('mulu.txt') as f:
+        with open('dir.txt') as f:
             for line in f:
                 mulu = line.replace('$ext$',ext).strip()
                 if mulu:
@@ -76,11 +76,6 @@ class DirScan:
 
     def run(self):
         self.start_time = time.time()
-        t_sequ = []
-        t_pro = threading.Thread(target=self.progress, name="progress")
-        t_pro.setDaemon(True)
-        t_pro.start()
-
         for i in range(self.threads_num):
             t = threading.Thread(target=self._scan, name=str(i))
             t.setDaemon(True)
@@ -103,7 +98,7 @@ if __name__ == '__main__':
     #if len(args) < 1:
      #   parser.print_help()
       #  sys.exit(0)
-    f = open('target.txt','r')
+    f = open('cc.txt','r')
     hosts = f.read().split()
     for i in range(len(hosts)):
         Dict = 'http://'+hosts[i]
